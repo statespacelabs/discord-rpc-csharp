@@ -1,0 +1,11 @@
+{
+  "author": "Lachee",
+  "name": "com.discord.rpc",
+  "displayName": "Discord RPC C# Wrapper",
+  "version": "1.0.175",
+  "description": "Discord RPC C# Wrapper for Unity.",
+  "homepage": "https://github.com/Lachee/discord-rpc-csharp",
+  "publishConfig": {
+    "registry": "https://www.nuget.org/packages/DiscordRichPresence/"
+  }
+}
