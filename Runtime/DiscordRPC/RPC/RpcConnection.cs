@@ -431,6 +431,7 @@ namespace DiscordRPC.RPC
 					Logger.Error("Unhandled Exception: {0}", e.GetType().FullName);
 					Logger.Error(e.Message);
 					Logger.Error(e.StackTrace);
+					EnqueueMessage(new ConnectionFailedMessage() { FailedPipe = targetPipe });
 				}
 				finally
 				{
