@@ -19,5 +19,9 @@ namespace DiscordRPC.RPC.Payload
 		/// </summary>
 		[JsonProperty("message")]
 		public string Reason { get; set; }
+
+		public ClosePayload()
+		{
+		}
 	}
 }
