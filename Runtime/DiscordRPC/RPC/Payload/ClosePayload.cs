@@ -19,5 +19,12 @@ namespace DiscordRPC.RPC.Payload
 		/// </summary>
 		[JsonProperty("message")]
 		public string Reason { get; set; }
+
+		[JsonConstructor]
+		public ClosePayload(int code, string message)
+		{
+			Code = code;
+			Reason = message;
+		}
 	}
 }

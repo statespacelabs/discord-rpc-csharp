@@ -9,6 +9,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using DiscordRPC.Logging;
 using DiscordRPC.Events;
+using Lachee.IO.Exceptions;
 
 namespace DiscordRPC.RPC
 {
@@ -297,7 +298,8 @@ namespace DiscordRPC.RPC
 					Logger.Trace("Connecting to the pipe through the {0}", namedPipe.GetType().FullName);
 					if (namedPipe.Connect(targetPipe))
 					{
-						#region Connected
+#region Connected
+
 						//We connected to a pipe! Reset the delay
 						Logger.Trace("Connected to the pipe. Attempting to establish handshake...");
 						EnqueueMessage(new ConnectionEstablishedMessage() { ConnectedPipe = namedPipe.ConnectedPipe });
@@ -313,12 +315,13 @@ namespace DiscordRPC.RPC
 						bool mainloop = true;
 						while (mainloop && !aborting && !shutdown && namedPipe.IsConnected)
 						{
-							#region Read Loop
+#region Read Loop
 
 							//Iterate over every frame we have queued up, processing its contents
 							if (namedPipe.ReadFrame(out frame))
 							{
-								#region Read Payload
+#region Read Payload
+
 								Logger.Trace("Read Payload: {0}", frame.Opcode);
 
 								//Do some basic processing on the frame
@@ -328,25 +331,26 @@ namespace DiscordRPC.RPC
 									case Opcode.Close:
 
 										ClosePayload close = frame.GetObject<ClosePayload>();
-										Logger.Warning("We have been told to terminate by discord: ({0}) {1}", close.Code, close.Reason);
+										Logger.Warning("We have been told to terminate by discord: ({0}) {1}",
+													   close.Code, close.Reason);
 										EnqueueMessage(new CloseMessage() { Code = close.Code, Reason = close.Reason });
 										mainloop = false;
 										break;
 
 									//We have pinged, so we will flip it and respond back with pong
-									case Opcode.Ping:					
+									case Opcode.Ping:
 										Logger.Trace("PING");
 										frame.Opcode = Opcode.Pong;
 										namedPipe.WriteFrame(frame);
 										break;
 
 									//We have ponged? I have no idea if Discord actually sends ping/pongs.
-									case Opcode.Pong:															
+									case Opcode.Pong:
 										Logger.Trace("PONG");
 										break;
 
 									//A frame has been sent, we should deal with that
-									case Opcode.Frame:					
+									case Opcode.Frame:
 										if (shutdown)
 										{
 											//We are shutting down, so skip it
@@ -357,27 +361,36 @@ namespace DiscordRPC.RPC
 										if (frame.Data == null)
 										{
 											//We have invalid data, thats not good.
-											Logger.Error("We received no data from the frame so we cannot get the event payload!");
+											Logger.Error(
+												"We received no data from the frame so we cannot get the event payload!");
 											break;
 										}
 
 										//We have a frame, so we are going to process the payload and add it to the stack
 										EventPayload response = null;
-										try { response = frame.GetObject<EventPayload>(); } catch (Exception e)
+										try
+										{
+											response = frame.GetObject<EventPayload>();
+										}
+										catch (Exception e)
 										{
 											Logger.Error("Failed to parse event! " + e.Message);
 											Logger.Error("Data: " + frame.Message);
 										}
 
 
-										try { if (response != null) ProcessFrame(response); } catch(Exception e)
-                                        {
+										try
+										{
+											if (response != null) ProcessFrame(response);
+										}
+										catch (Exception e)
+										{
 											Logger.Error("Failed to process event! " + e.Message);
 											Logger.Error("Data: " + frame.Message);
 										}
 
 										break;
-										
+
 
 									default:
 									case Opcode.Handshake:
@@ -387,11 +400,11 @@ namespace DiscordRPC.RPC
 										break;
 								}
 
-								#endregion
+#endregion
 							}
 
 							if (!aborting && namedPipe.IsConnected)
-							{ 
+							{
 								//Process the entire command queue we have left
 								ProcessCommandQueue();
 
@@ -399,11 +412,13 @@ namespace DiscordRPC.RPC
 								queueUpdatedEvent.WaitOne(POLL_RATE);
 							}
 
-							#endregion
+#endregion
 						}
-						#endregion
 
-						Logger.Trace("Left main read loop for some reason. Aborting: {0}, Shutting Down: {1}", aborting, shutdown);
+#endregion
+
+						Logger.Trace("Left main read loop for some reason. Aborting: {0}, Shutting Down: {1}", aborting,
+									 shutdown);
 					}
 					else
 					{
@@ -426,6 +441,13 @@ namespace DiscordRPC.RPC
 				//{
 				//	Logger.Error("Invalid Pipe Exception: {0}", e.Message);
 				//}
+				catch (NamedPipeWriteException e)
+				{
+					Logger.Error("{0}", e.GetType().FullName);
+					Logger.Error(e.Message);
+					Logger.Error(e.StackTrace);
+					EnqueueMessage(new ConnectionFailedMessage() { FailedPipe = targetPipe });
+				}
 				catch (Exception e)
 				{
 					Logger.Error("Unhandled Exception: {0}", e.GetType().FullName);
