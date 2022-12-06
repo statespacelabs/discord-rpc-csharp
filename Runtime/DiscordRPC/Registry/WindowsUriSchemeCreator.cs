@@ -56,6 +56,7 @@ namespace DiscordRPC.Registry
         /// <param name="command"></param>
         private void CreateUriScheme(string scheme, string friendlyName, string defaultIcon, string command)
         {
+#if PLATFORM_STANDALONE_WIN || UNITY_STANDALONE_WIN
             using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("SOFTWARE\\Classes\\" + scheme))
             {
                 key.SetValue("", "URL:" + friendlyName);
@@ -69,6 +70,7 @@ namespace DiscordRPC.Registry
             }
 
             logger.Trace("Registered {0}, {1}, {2}", scheme, friendlyName, command);
+#endif
         }
 
         /// <summary>
@@ -77,11 +79,15 @@ namespace DiscordRPC.Registry
         /// <returns></returns>
         public string GetSteamLocation()
         {
+#if PLATFORM_STANDALONE_WIN || UNITY_STANDALONE_WIN
             using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software\\Valve\\Steam"))
             {
                 if (key == null) return null;
                 return key.GetValue("SteamExe") as string;
             }
+#else
+            return null;
+#endif
         }
     }
 }
